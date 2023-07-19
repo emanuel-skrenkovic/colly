@@ -21,17 +21,13 @@ type ValueGroup[T any] struct {
 }
 
 func NewValueGroup[T any](ctx context.Context) *ValueGroup[T] {
-	var vg = ValueGroup[T]{
+	return &ValueGroup[T]{
 		ctx:     ctx,
 		wg:      sync.WaitGroup{},
 		errCh:   make(chan error),
 		valueCh: make(chan T),
 		doneCh:  make(chan struct{}),
 	}
-
-	go vg.reactorLoop()
-
-	return &vg
 }
 
 func (g *ValueGroup[T]) Go(f func() (T, error)) {
@@ -48,6 +44,8 @@ func (g *ValueGroup[T]) Go(f func() (T, error)) {
 }
 
 func (g *ValueGroup[T]) Wait() ([]T, error) {
+	go g.reactorLoop()
+
 	go func() {
 		g.wg.Wait()
 		close(g.doneCh)
@@ -55,17 +53,17 @@ func (g *ValueGroup[T]) Wait() ([]T, error) {
 
 	select {
 	case <-g.doneCh:
-		if len(g.errors) > 0 {
-			err := g.errors[0]
-
-			for _, newErr := range g.errors[1:] {
-				err = errors.Join(err, newErr)
-			}
-
-			return nil, err
+		if len(g.errors) < 1 {
+			return g.values, nil
 		}
 
-		return g.values, nil
+		var err error
+		for _, newErr := range g.errors {
+			err = errors.Join(err, newErr)
+		}
+
+		return nil, err
+
 	case <-g.ctx.Done():
 		err := g.ctx.Err()
 

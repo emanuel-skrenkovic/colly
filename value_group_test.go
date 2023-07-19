@@ -59,33 +59,35 @@ func TestUnhappy(t *testing.T) {
 
 func TestContextTimeout(t *testing.T) {
 	for i := 0; i < 1_000; i++ {
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
-		defer cancel()
+		func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
+			defer cancel()
 
-		vg := NewValueGroup[int](ctx)
+			vg := NewValueGroup[int](ctx)
 
-		for i := 0; i < 10; i++ {
-			i := i
-			vg.Go(func() (int, error) {
-				if i == 8 {
-					time.Sleep(2 * time.Millisecond)
-				}
-				return i, nil
-			})
-		}
+			for i := 0; i < 10; i++ {
+				i := i
+				vg.Go(func() (int, error) {
+					if i == 8 {
+						time.Sleep(2 * time.Millisecond)
+					}
+					return i, nil
+				})
+			}
 
-		is, err := vg.Wait()
+			is, err := vg.Wait()
 
-		if err == nil {
-			t.Fail()
-		}
+			if err == nil {
+				t.Fail()
+			}
 
-		if !errors.Is(err, context.DeadlineExceeded) {
-			t.Fail()
-		}
+			if !errors.Is(err, context.DeadlineExceeded) {
+				t.Fail()
+			}
 
-		if len(is) > 0 {
-			t.Fail()
-		}
+			if len(is) > 0 {
+				t.Fail()
+			}
+		}()
 	}
 }
