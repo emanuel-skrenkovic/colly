@@ -35,8 +35,11 @@ func (g *Group) Go(f func() error) {
 }
 
 func (g *Group) Wait() error {
-	go g.wg.Wait()
 	go g.reactorLoop()
+	go func() {
+		g.wg.Wait()
+		close(g.doneCh)
+	}()
 
 	select {
 	case <-g.doneCh:

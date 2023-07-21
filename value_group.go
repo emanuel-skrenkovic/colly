@@ -25,7 +25,7 @@ func NewValueGroup[T any](ctx context.Context) *ValueGroup[T] {
 		ctx:     ctx,
 		wg:      sync.WaitGroup{},
 		errCh:   make(chan error),
-		valueCh: make(chan T, 1),
+		valueCh: make(chan T),
 		doneCh:  make(chan struct{}),
 	}
 }
@@ -37,16 +37,18 @@ func (g *ValueGroup[T]) Go(f func() (T, error)) {
 		res, err := f()
 		if err != nil {
 			g.errCh <- err
-			return
+		} else {
+			g.valueCh <- res
 		}
-
-		g.valueCh <- res
 	}()
 }
 
 func (g *ValueGroup[T]) Wait() ([]T, error) {
-	go g.wg.Wait()
 	go g.reactorLoop()
+	go func() {
+		g.wg.Wait()
+		close(g.doneCh)
+	}()
 
 	select {
 	case <-g.doneCh:
