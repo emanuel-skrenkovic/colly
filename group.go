@@ -3,7 +3,6 @@ package colly
 import (
 	"context"
 	"errors"
-	"runtime"
 	"sync"
 )
 
@@ -21,29 +20,13 @@ type Group struct {
 	errors []error
 }
 
-type GroupOption func(*Group)
-
-func WithMaxParallel(max int) GroupOption {
-	return func(g *Group) {
-		g.capacity = max
-	}
-}
-
-func defaultCapacity() int { return runtime.GOMAXPROCS(0) }
-
-func NewGroup(ctx context.Context, options ...GroupOption) *Group {
-	g := Group{
+func NewGroup(ctx context.Context) *Group {
+	return &Group{
 		ctx:      ctx,
 		wg:       sync.WaitGroup{},
 		capacity: defaultCapacity(),
 		errCh:    make(chan error),
 	}
-
-	for _, opt := range options {
-		opt(&g)
-	}
-
-	return &g
 }
 
 func (g *Group) Go(f func() error) {
@@ -57,12 +40,8 @@ func (g *Group) Go(f func() error) {
 }
 
 func (g *Group) Wait() error {
+	go g.wg.Wait()
 	go g.reactorLoop()
-
-	go func() {
-		g.wg.Wait()
-		close(g.doneCh)
-	}()
 
 	select {
 	case <-g.doneCh:

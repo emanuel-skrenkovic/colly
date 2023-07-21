@@ -78,14 +78,17 @@ func TestContextTimeout(t *testing.T) {
 			is, err := vg.Wait()
 
 			if err == nil {
+				t.Error(err)
 				t.Fail()
 			}
 
 			if !errors.Is(err, context.DeadlineExceeded) {
+				t.Errorf("unexpected error type: %s", err.Error())
 				t.Fail()
 			}
 
 			if len(is) > 0 {
+				t.Errorf("too many responses")
 				t.Fail()
 			}
 		}()
