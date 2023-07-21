@@ -38,7 +38,9 @@ func (g *Group) Wait() error {
 	go g.reactorLoop()
 	go func() {
 		g.wg.Wait()
-		close(g.doneCh)
+		if g.doneCh != nil {
+			close(g.doneCh)
+		}
 	}()
 
 	select {
