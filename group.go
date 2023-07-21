@@ -12,8 +12,6 @@ type Group struct {
 	ctx context.Context
 	wg  sync.WaitGroup
 
-	capacity int
-
 	doneCh chan struct{}
 	errCh  chan error
 
@@ -24,7 +22,6 @@ func NewGroup(ctx context.Context) *Group {
 	return &Group{
 		ctx:      ctx,
 		wg:       sync.WaitGroup{},
-		capacity: defaultCapacity(),
 		errCh:    make(chan error),
 	}
 }
