@@ -20,9 +20,9 @@ type Group struct {
 
 func NewGroup(ctx context.Context) *Group {
 	return &Group{
-		ctx:      ctx,
-		wg:       sync.WaitGroup{},
-		errCh:    make(chan error),
+		ctx:   ctx,
+		wg:    sync.WaitGroup{},
+		errCh: make(chan error),
 	}
 }
 
@@ -30,9 +30,7 @@ func (g *Group) Go(f func() error) {
 	g.wg.Add(1)
 
 	go func() {
-		if err := f(); err != nil {
-			g.errCh <- err
-		}
+		g.errCh <- f()
 	}()
 }
 
@@ -68,7 +66,9 @@ func (g *Group) reactorLoop() {
 	for {
 		select {
 		case err := <-g.errCh:
-			g.errors = append(g.errors, err)
+			if err != nil {
+				g.errors = append(g.errors, err)
+			}
 			g.wg.Done()
 		}
 	}
